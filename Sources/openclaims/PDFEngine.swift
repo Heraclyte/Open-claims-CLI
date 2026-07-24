@@ -1,15 +1,18 @@
 import Foundation
 
+// Add a new error case for missing Size
 enum PDFError: Error, CustomStringConvertible {
     case eofNotFound
     case startxrefNotFound
     case offsetNotParsed
+    case sizeNotParsed // New error
     
     var description: String {
         switch self {
         case .eofNotFound: return "Could not find %%EOF marker. Is this a valid PDF?"
         case .startxrefNotFound: return "Could not find startxref keyword."
         case .offsetNotParsed: return "Could not parse previous xref offset integer."
+        case .sizeNotParsed: return "Could not parse /Size from trailer."
         }
     }
 }
@@ -18,7 +21,6 @@ struct PDFEngine {
     let inputPath: String
     let outputPath: String
     
-    // Accept the generated JSON payload as an argument
     func process(payload: String) throws {
         let expandedPDFPath = NSString(string: inputPath).expandingTildeInPath
         let expandedOutputPath = NSString(string: outputPath).expandingTildeInPath
@@ -27,12 +29,16 @@ struct PDFEngine {
         let inputURL = URL(fileURLWithPath: expandedPDFPath)
         let outputURL = URL(fileURLWithPath: expandedOutputPath)
         
-        // 1. File Duplication
-        if fileManager.fileExists(atPath: outputURL.path) {
-            try fileManager.removeItem(at: outputURL)
+        // 1. File Duplication & In-Place Support
+        if inputURL.standardizedFileURL != outputURL.standardizedFileURL {
+            if fileManager.fileExists(atPath: outputURL.path) {
+                try fileManager.removeItem(at: outputURL)
+            }
+            try fileManager.copyItem(at: inputURL, to: outputURL)
+            print("✅ Copied original PDF to target destination.")
+        } else {
+            print("✅ In-place modification detected. Reading directly from target.")
         }
-        
-        try fileManager.copyItem(at: inputURL, to: outputURL)
         
         // 2. Memory Ingestion
         let pdfData = try Data(contentsOf: outputURL)
@@ -40,6 +46,7 @@ struct PDFEngine {
         // 3. Reverse Scanning for PDF Markers
         let eofMarker = Data("%%EOF".utf8)
         let startxrefMarker = Data("startxref".utf8)
+        let trailerMarker = Data("trailer".utf8)
         
         guard let eofRange = pdfData.range(of: eofMarker, options: .backwards) else {
             throw PDFError.eofNotFound
@@ -49,39 +56,58 @@ struct PDFEngine {
             throw PDFError.startxrefNotFound
         }
         
+        // Parse previous xref offset
         let offsetDataRange = startxrefRange.upperBound..<eofRange.lowerBound
         let offsetData = pdfData[offsetDataRange]
-        
         guard let offsetString = String(data: offsetData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
               let previousXrefOffset = Int(offsetString) else {
             throw PDFError.offsetNotParsed
         }
         
-        // 4. Payload Injection Setup
-        // We use a high object ID (99999) to ensure we don't collide with existing objects in the PDF
-        let newObjectId = 99999
+        // 4. Extract /Size from the Trailer
+        // Find the "trailer" keyword that comes before "startxref"
+        guard let trailerRange = pdfData.range(of: trailerMarker, options: .backwards, in: 0..<startxrefRange.lowerBound) else {
+            throw PDFError.sizeNotParsed
+        }
+        
+        // Get the string block between "trailer" and "startxref"
+        let trailerDataRange = trailerRange.upperBound..<startxrefRange.lowerBound
+        let trailerData = pdfData[trailerDataRange]
+        guard let trailerString = String(data: trailerData, encoding: .utf8) else {
+            throw PDFError.sizeNotParsed
+        }
+        
+        // Use a simple regex to find the integer following "/Size "
+        let sizeRegex = try NSRegularExpression(pattern: "/Size\\s+(\\d+)")
+        let nsString = trailerString as NSString
+        guard let match = sizeRegex.firstMatch(in: trailerString, range: NSRange(location: 0, length: nsString.length)),
+              let sizeRange = Range(match.range(at: 1), in: trailerString),
+              let extractedSize = Int(trailerString[sizeRange]) else {
+            throw PDFError.sizeNotParsed
+        }
+        
+        // The new object ID is exactly the current /Size value
+        let newObjectId = extractedSize
+        print("✅ Dynamically assigned Object ID: \(newObjectId)")
+        
+        // 5. Payload Injection Setup
         let injectionOffset = pdfData.count
         
-        // PDFs require parentheses and backslashes inside literal strings to be escaped
         let escapedPayload = payload
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "(", with: "\\(")
             .replacingOccurrences(of: ")", with: "\\)")
         
-        // Format the new PDF Dictionary Object 
         let newObjectString = """
         \n\(newObjectId) 0 obj
         << /Type /Metadata /Subtype /OpenClaims /Payload (\(escapedPayload)) >>
         endobj\n
         """
         
-        // Calculate the exact byte offset where our new XREF table will begin
         let newXrefOffset = injectionOffset + newObjectString.utf8.count
-        
-        // Format the offset to strictly enforce the 10-digit PDF specification
         let formattedInjectionOffset = String(format: "%010d", injectionOffset)
         
-        // Construct the new XREF table, Trailer, and final %%EOF marker
+        // Update the trailer with the dynamically incremented size (newObjectId + 1)
         let newXrefAndTrailer = """
         xref
         0 1
@@ -95,12 +121,11 @@ struct PDFEngine {
         %%EOF
         """
         
-        // 5. Append and Finalize
+        // 6. Append and Finalize
         var finalData = pdfData
         finalData.append(Data(newObjectString.utf8))
         finalData.append(Data(newXrefAndTrailer.utf8))
         
-        // Overwrite the output file with the modified bytes
         try finalData.write(to: outputURL)
         print("✅ Successfully injected Open Claims payload into PDF.")
     }
