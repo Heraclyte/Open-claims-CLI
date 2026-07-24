@@ -1,14 +1,32 @@
 import Foundation
 
 struct PayloadBuilder {
-    /// Constructs the Open Claims JSON payload from raw inputs.
-    static func build(issuer: String, claimType: String, subject: String) throws -> String {
+    static func build(
+        issuer: String,
+        claimType: String,
+        subject: String,
+        recipientType: String,
+        assertionType: String?,
+        skill: String?
+    ) throws -> String {
+        
+        // Specification Validation: Enforce credential requirements
+        if claimType == "credential" {
+            guard let _ = assertionType, let _ = skill else {
+                throw NSError(
+                    domain: "OpenClaims",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "Error: 'credential' claims strictly require --assertion-type and --skill."]
+                )
+            }
+        }
+        
         let isoFormatter = ISO8601DateFormatter()
         let issuedAtTimestamp = isoFormatter.string(from: Date())
         let generatedClaimId = UUID().uuidString
         
         let recipient = RecipientData(
-            recipientType: "individual", // Defaulting to individual for the MVP[cite: 1]
+            recipientType: recipientType,
             recipientIdentifier: subject
         )
         
@@ -19,7 +37,9 @@ struct PayloadBuilder {
             issuer: issuer,
             issuedAt: issuedAtTimestamp,
             recipientData: recipient,
-            signature: "UNINITIALIZED_SIGNATURE" // Placeholder[cite: 1]
+            assertionType: assertionType,
+            skill: skill,
+            signature: "UNINITIALIZED_SIGNATURE" // Placeholder
         )
         
         return try envelope.toJSONString()

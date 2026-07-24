@@ -15,6 +15,15 @@ struct Attach: ParsableCommand {
     @Option(name: .long, help: "The subject identifier (e.g., email or ID).")
     var subject: String
 
+    @Option(name: .long, help: "The type of recipient (individual or organization).")
+    var recipientType: String = "individual"
+
+    @Option(name: .long, help: "The epistemic weight (e.g., certification, completion). Required for credentials.")
+    var assertionType: String?
+
+    @Option(name: .long, help: "The skill, course, or role being asserted. Required for credentials.")
+    var skill: String?
+
     @Option(name: .long, help: "Path to the input PDF.")
     var pdf: String
 
@@ -25,20 +34,21 @@ struct Attach: ParsableCommand {
         print("Executing Attach Command...")
         
         do {
-            // 1. Delegate payload generation to the Builder
             let jsonPayload = try PayloadBuilder.build(
                 issuer: issuer,
                 claimType: claimType,
-                subject: subject
+                subject: subject,
+                recipientType: recipientType,
+                assertionType: assertionType,
+                skill: skill
             )
             print("✅ Generated Payload: \(jsonPayload)")
             
-            // 2. Delegate file operations and byte injection to the Engine
             let engine = PDFEngine(inputPath: pdf, outputPath: output)
             try engine.process(payload: jsonPayload)
             
         } catch {
-            print("❌ Command Failure: \(error)")
+            print("❌ Command Failure: \(error.localizedDescription)")
         }
     }
 }
