@@ -24,6 +24,9 @@ struct Attach: ParsableCommand {
     @Option(name: .long, help: "The skill, course, or role being asserted. Required for credentials.")
     var skill: String?
 
+    @Option(name: .long, help: "Custom metadata as a JSON string (e.g., '{\"score\":\"95\"}').")
+    var metadata: String?
+
     @Option(name: .long, help: "Path to the input PDF.")
     var pdf: String
 
@@ -40,7 +43,8 @@ struct Attach: ParsableCommand {
                 subject: subject,
                 recipientType: recipientType,
                 assertionType: assertionType,
-                skill: skill
+                skill: skill,
+                rawMetadata: metadata
             )
             print("✅ Generated Payload: \(jsonPayload)")
             

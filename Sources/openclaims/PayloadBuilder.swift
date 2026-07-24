@@ -7,7 +7,8 @@ struct PayloadBuilder {
         subject: String,
         recipientType: String,
         assertionType: String?,
-        skill: String?
+        skill: String?,
+        rawMetadata: String?
     ) throws -> String {
         
         // Specification Validation: Enforce credential requirements
@@ -20,7 +21,12 @@ struct PayloadBuilder {
                 )
             }
         }
-        
+
+        var parsedMetadata: [String: String]? = nil
+        if let jsonString = rawMetadata, let data = jsonString.data(using: .utf8) {
+            parsedMetadata = try? JSONSerialization.jsonObject(with: data) as? [String: String]
+        }
+
         let isoFormatter = ISO8601DateFormatter()
         let issuedAtTimestamp = isoFormatter.string(from: Date())
         let generatedClaimId = UUID().uuidString
@@ -39,6 +45,7 @@ struct PayloadBuilder {
             recipientData: recipient,
             assertionType: assertionType,
             skill: skill,
+            metadata: parsedMetadata,
             signature: "UNINITIALIZED_SIGNATURE" // Placeholder
         )
         

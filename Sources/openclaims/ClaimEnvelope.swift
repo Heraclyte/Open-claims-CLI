@@ -22,6 +22,8 @@ struct ClaimEnvelope: Codable {
     
     let assertionType: String?
     let skill: String?
+    let metadata: [String: String]?
+
     let signature: String
     
     enum CodingKeys: String, CodingKey {
@@ -33,6 +35,7 @@ struct ClaimEnvelope: Codable {
         case recipientData = "recipient_data"
         case assertionType = "assertion_type"
         case skill
+        case metadata
         case signature
     }
     
