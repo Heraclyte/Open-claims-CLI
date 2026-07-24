@@ -33,6 +33,9 @@ struct Attach: ParsableCommand {
     @Option(name: .long, help: "Path to write the output PDF.")
     var output: String
 
+    @Option(name: .long, help: "Path to the Ed25519 private key file.")
+    var privateKey: String?
+
     mutating func run() throws {
         print("Executing Attach Command...")
         
@@ -44,7 +47,8 @@ struct Attach: ParsableCommand {
                 recipientType: recipientType,
                 assertionType: assertionType,
                 skill: skill,
-                rawMetadata: metadata
+                rawMetadata: metadata,
+                privateKeyPath: privateKey
             )
             print("✅ Generated Payload: \(jsonPayload)")
             

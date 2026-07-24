@@ -8,10 +8,10 @@ struct PayloadBuilder {
         recipientType: String,
         assertionType: String?,
         skill: String?,
-        rawMetadata: String?
+        rawMetadata: String?,
+        privateKeyPath: String?
     ) throws -> String {
         
-        // Specification Validation: Enforce credential requirements
         if claimType == "credential" {
             guard let _ = assertionType, let _ = skill else {
                 throw NSError(
@@ -36,6 +36,7 @@ struct PayloadBuilder {
             recipientIdentifier: subject
         )
         
+        // 1. Construct envelope with nil signature to establish canonical form
         let envelope = ClaimEnvelope(
             specVersion: "v0.2",
             claimId: generatedClaimId,
@@ -46,9 +47,34 @@ struct PayloadBuilder {
             assertionType: assertionType,
             skill: skill,
             metadata: parsedMetadata,
-            signature: "UNINITIALIZED_SIGNATURE" // Placeholder
+            signature: nil
         )
         
-        return try envelope.toJSONString()
+        let canonicalJsonString = try envelope.toJSONString(excludeSignature: true)
+        let canonicalData = Data(canonicalJsonString.utf8)
+        
+        // 2. Generate actual signature if private key path is provided
+        let finalSignature: String
+        if let keyPath = privateKeyPath {
+            finalSignature = try Signer.sign(data: canonicalData, privateKeyPath: keyPath)
+        } else {
+            finalSignature = "UNINITIALIZED_SIGNATURE"
+        }
+        
+        // 3. Re-instantiate envelope including the valid signature string
+        let signedEnvelope = ClaimEnvelope(
+            specVersion: "v0.2",
+            claimId: generatedClaimId,
+            claimType: claimType,
+            issuer: issuer,
+            issuedAt: issuedAtTimestamp,
+            recipientData: recipient,
+            assertionType: assertionType,
+            skill: skill,
+            metadata: parsedMetadata,
+            signature: finalSignature
+        )
+        
+        return try signedEnvelope.toJSONString(excludeSignature: false)
     }
 }
