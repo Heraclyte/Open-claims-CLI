@@ -1,5 +1,4 @@
 import ArgumentParser
-import Foundation
 
 struct Attach: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -25,38 +24,21 @@ struct Attach: ParsableCommand {
     mutating func run() throws {
         print("Executing Attach Command...")
         
-        // 1. Generate Dynamic Envelope Data
-        let isoFormatter = ISO8601DateFormatter()
-        let issuedAtTimestamp = isoFormatter.string(from: Date())
-        let generatedClaimId = UUID().uuidString
-        
-        let recipient = RecipientData(
-            recipientType: "individual", // Defaulting to individual for the MVP[cite: 1]
-            recipientIdentifier: subject
-        )
-        
-        let envelope = ClaimEnvelope(
-            specVersion: "v0.2",
-            claimId: generatedClaimId,
-            claimType: claimType,
-            issuer: issuer,
-            issuedAt: issuedAtTimestamp,
-            recipientData: recipient,
-            signature: "UNINITIALIZED_SIGNATURE" // Placeholder as cryptography is deferred[cite: 1]
-        )
-        
-        // 2. Test JSON Generation
-        let jsonPayload = try envelope.toJSONString()
-        print("✅ Generated Payload: \(jsonPayload)")
-        
-        // Initialize our isolated engine
-        let engine = PDFEngine(inputPath: pdf, outputPath: output)
-        
-        // Execute the engine logic and pass the payload
         do {
+            // 1. Delegate payload generation to the Builder
+            let jsonPayload = try PayloadBuilder.build(
+                issuer: issuer,
+                claimType: claimType,
+                subject: subject
+            )
+            print("✅ Generated Payload: \(jsonPayload)")
+            
+            // 2. Delegate file operations and byte injection to the Engine
+            let engine = PDFEngine(inputPath: pdf, outputPath: output)
             try engine.process(payload: jsonPayload)
+            
         } catch {
-            print("❌ Engine Failure: \(error)")
+            print("❌ Command Failure: \(error)")
         }
     }
 }
