@@ -7,12 +7,6 @@ private final class DevMetadataReader: MetadataReaderProtocol {
     func extractIssuerURL(fromFilePath path: String) async throws -> URL { url }
 }
 
-private final class DevHTTPClient: HTTPClientProtocol {
-    let envelope: ClaimEnvelope
-    init(envelope: ClaimEnvelope) { self.envelope = envelope }
-    func fetchClaimEnvelope(from url: URL) async throws -> ClaimEnvelope { envelope }
-}
-
 @main
 struct VerifyCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -43,29 +37,28 @@ struct VerifyCommand: AsyncParsableCommand {
             print("Initial validation completed successfully. Ready for the next phase.")
         }
 
-        let dummyURL = URL(
-            string: issuerDomain.contains("://") ? issuerDomain : "https://\(issuerDomain)")!
-        let dummyEnvelope = ClaimEnvelope(
-            id: "dev_mode_001",
-            issuer: dummyURL,
-            issuedAt: Date(),
-            claim: ClaimDetails(subject: "tester", assertion: "valid_setup")
-        )
+        let formattedURLString =
+            issuerDomain.contains("://") ? issuerDomain : "https://\(issuerDomain)"
+        guard let issuerURL = URL(string: formattedURLString) else {
+            print("Invalid issuer domain URL.")
+            return
+        }
 
-        let devMetadataReader = DevMetadataReader(url: dummyURL)
-        let devHTTPClient = DevHTTPClient(envelope: dummyEnvelope)
+        let devMetadataReader = DevMetadataReader(url: issuerURL)
+        let httpClient = URLSessionHTTPClient()
 
         let processor = ClaimVerificationProcessor(
             metadataReader: devMetadataReader,
-            httpClient: devHTTPClient
+            httpClient: httpClient
         )
 
-        print("Starting processing for file: \(pdfPath)")
+        print("Fetching claim envelope from network: \(issuerURL.absoluteString)...")
         await processor.process(pdfPath: pdfPath)
 
         if processor.state.status == VerificationState.Status.valid {
             print("Success! Claim verified successfully.")
             if let envelope = processor.state.envelope {
+                print("Claim ID: \(envelope.id)")
                 print("Subject: \(envelope.claim.subject)")
                 print("Assertion: \(envelope.claim.assertion)")
             }
