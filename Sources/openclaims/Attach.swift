@@ -81,6 +81,7 @@ struct Attach: ParsableCommand {
             
         } catch {
             print("❌ Command Failure: \(error.localizedDescription)")
+            throw ExitCode.failure
         }
     }
 }

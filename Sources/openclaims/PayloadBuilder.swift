@@ -54,11 +54,11 @@ struct PayloadBuilder {
         let canonicalData = Data(canonicalJsonString.utf8)
         
         // 2. Generate actual signature if private key path is provided
-        let finalSignature: String
+        let finalSignature: String?
         if let keyPath = privateKeyPath {
             finalSignature = try Signer.sign(data: canonicalData, privateKeyPath: keyPath)
         } else {
-            finalSignature = "UNINITIALIZED_SIGNATURE"
+            finalSignature = nil
         }
         
         // 3. Re-instantiate envelope including the valid signature string
