@@ -1,12 +1,6 @@
 import ArgumentParser
 import Foundation
 
-private final class DevMetadataReader: MetadataReaderProtocol {
-    let url: URL
-    init(url: URL) { self.url = url }
-    func extractIssuerURL(fromFilePath path: String) async throws -> URL { url }
-}
-
 @main
 struct VerifyCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -44,11 +38,11 @@ struct VerifyCommand: AsyncParsableCommand {
             return
         }
 
-        let devMetadataReader = DevMetadataReader(url: issuerURL)
+        let localReader = LocalPDFMetadataReader()
         let httpClient = URLSessionHTTPClient()
 
         let processor = ClaimVerificationProcessor(
-            metadataReader: devMetadataReader,
+            metadataReader: localReader,
             httpClient: httpClient
         )
 
