@@ -10,7 +10,7 @@ struct OpenClaimsCommand: ParsableCommand {
         abstract: "A utility for embedding verifiable claims into PDF documents.",
         version: "0.2.0",
         // This array registers your subcommands
-        subcommands: [Attach.self] 
+        subcommands: [Attach.self, Create.self] 
     )
 
     mutating func run() throws {
