@@ -40,10 +40,12 @@ struct VerifyCommand: AsyncParsableCommand {
 
         let localReader = LocalPDFMetadataReader()
         let httpClient = URLSessionHTTPClient()
+        let cryptoVerifier = Ed25519Verifier()
 
         let processor = ClaimVerificationProcessor(
             metadataReader: localReader,
-            httpClient: httpClient
+            httpClient: httpClient,
+            verifier: cryptoVerifier
         )
 
         print("Fetching claim envelope from network: \(issuerURL.absoluteString)...")
