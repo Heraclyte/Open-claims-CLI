@@ -2,7 +2,7 @@ import Foundation
 
 @testable import openclaims
 
-public final class MockMetadataReader: MetadataReaderProtocol {
+public final class MockMetadataReader: MetadataReaderProtocol, @unchecked Sendable {
     public let resultToReturn: Result<URL, Error>
 
     public init(result: Result<URL, Error>) {
@@ -10,18 +10,40 @@ public final class MockMetadataReader: MetadataReaderProtocol {
     }
 
     public func extractIssuerURL(fromFilePath path: String) async throws -> URL {
-        try resultToReturn.get()
+        return try resultToReturn.get()
     }
 }
 
-public final class MockHTTPClient: HTTPClientProtocol {
+public final class MockHTTPClient: HTTPClientProtocol, @unchecked Sendable {
     public let resultToReturn: Result<ClaimEnvelope, Error>
+    public let publicKeyToReturn: Data
 
-    public init(result: Result<ClaimEnvelope, Error>) {
-        self.resultToReturn = result
+    public init(resultToReturn: Result<ClaimEnvelope, Error>, publicKeyToReturn: Data = Data()) {
+        self.resultToReturn = resultToReturn
+        self.publicKeyToReturn = publicKeyToReturn
     }
 
     public func fetchClaimEnvelope(from url: URL) async throws -> ClaimEnvelope {
-        try resultToReturn.get()
+        return try resultToReturn.get()
+    }
+
+    public func fetchPublicKey(for url: URL) async throws -> Data {
+        return publicKeyToReturn
+    }
+}
+
+public final class MockCryptographicVerifier: CryptographicVerifier, @unchecked Sendable {
+    public var wasValidateCalled = false
+    public var errorToThrow: Error?
+
+    public init(errorToThrow: Error? = nil) {
+        self.errorToThrow = errorToThrow
+    }
+
+    public func validate(signature: Data, payload: Data, publicKey: Data) throws {
+        wasValidateCalled = true
+        if let error = errorToThrow {
+            throw error
+        }
     }
 }
