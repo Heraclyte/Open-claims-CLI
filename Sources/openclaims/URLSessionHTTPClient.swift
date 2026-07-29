@@ -27,6 +27,7 @@ public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            print("Network request failed with underlying error: \(error)")
             throw HTTPClientError.invalidResponse
         }
 
