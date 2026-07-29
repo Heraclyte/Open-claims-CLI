@@ -20,7 +20,7 @@ public final class ClaimVerificationProcessor: @unchecked Sendable {
         self.state = initialState
     }
 
-    public func process(pdfPath: String) async {
+    public func process(pdfPath: String) async throws {
         state.markAsProcessing()
 
         do {
@@ -41,6 +41,7 @@ public final class ClaimVerificationProcessor: @unchecked Sendable {
             state.markAsValid()
         } catch {
             state.setError(error)
+            throw error
         }
     }
 }
