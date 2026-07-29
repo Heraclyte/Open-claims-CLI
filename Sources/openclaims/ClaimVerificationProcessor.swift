@@ -30,7 +30,7 @@ public final class ClaimVerificationProcessor: @unchecked Sendable {
             let envelope = try await httpClient.fetchClaimEnvelope(from: issuerURL)
             let publicKey = try await httpClient.fetchPublicKey(for: issuerURL)
 
-            let payloadData = try JSONEncoder().encode(envelope)
+            let payloadData = try JSONEncoder().encode(envelope.claim)
 
             try verifier.validate(
                 signature: envelope.signature,
