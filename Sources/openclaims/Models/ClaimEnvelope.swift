@@ -8,7 +8,7 @@ public struct ClaimEnvelope: Codable, Sendable {
     public let signature: Data
 
     public init(
-        id: String, issuer: URL, issuedAt: Date, claim: ClaimDetails, signature: Data = Data()
+        id: String, issuer: URL, issuedAt: Date, claim: ClaimDetails, signature: Data
     ) {
         self.id = id
         self.issuer = issuer
