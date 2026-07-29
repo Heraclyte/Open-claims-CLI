@@ -31,8 +31,6 @@ struct VerifyCommand: AsyncParsableCommand {
             print("Initial validation completed successfully. Ready for the next phase.")
         }
 
-        let formattedURLString =
-            issuerDomain.contains("://") ? issuerDomain : "https://\(issuerDomain)"
         guard let issuerURL = URL(string: formattedURLString) else {
             print("Invalid issuer domain URL.")
             return
@@ -49,7 +47,8 @@ struct VerifyCommand: AsyncParsableCommand {
         )
 
         print("Fetching claim envelope from network: \(issuerURL.absoluteString)...")
-        await processor.process(pdfPath: pdfPath)
+
+        try await processor.process(pdfPath: pdfPath, issuerURL: issuerURL)
 
         if processor.state.status == VerificationState.Status.valid {
             print("Success! Claim verified successfully.")

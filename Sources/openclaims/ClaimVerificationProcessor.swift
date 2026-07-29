@@ -20,11 +20,21 @@ public final class ClaimVerificationProcessor: @unchecked Sendable {
         self.state = initialState
     }
 
-    public func process(pdfPath: String) async throws {
+    public func process(pdfPath: String, issuerURL: URL) async throws {
         state.markAsProcessing()
 
         do {
-            let issuerURL = try await metadataReader.extractIssuerURL(fromFilePath: pdfPath)
+            let extractedURL = try await metadataReader.extractIssuerURL(fromFilePath: pdfPath)
+
+            guard extractedURL == issuerURL else {
+                struct IssuerMismatchError: Error, CustomStringConvertible {
+                    var description: String {
+                        "Extracted URL does not match the provided issuer domain."
+                    }
+                }
+                throw IssuerMismatchError()
+            }
+
             state.setIssuerURL(issuerURL)
 
             let envelope = try await httpClient.fetchClaimEnvelope(from: issuerURL)
@@ -43,5 +53,6 @@ public final class ClaimVerificationProcessor: @unchecked Sendable {
             state.setError(error)
             throw error
         }
+
     }
 }
