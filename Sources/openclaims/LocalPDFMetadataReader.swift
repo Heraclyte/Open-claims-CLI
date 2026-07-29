@@ -25,6 +25,10 @@ public final class LocalPDFMetadataReader: MetadataReaderProtocol {
             throw MetadataReaderError.metadataNotFound
         }
 
+        guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
+            throw MetadataReaderError.metadataNotFound
+        }
+
         return url
     }
 }
