@@ -27,6 +27,7 @@ public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            print("Network request failed while fetching envelope with error: \(error)")
             throw HTTPClientError.invalidResponse
         }
 
@@ -64,6 +65,7 @@ public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            print("Network request failed while fetching public key with error: \(error)")
             throw HTTPClientError.invalidResponse
         }
 
