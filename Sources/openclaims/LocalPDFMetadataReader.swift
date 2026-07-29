@@ -11,16 +11,25 @@ public final class LocalPDFMetadataReader: MetadataReaderProtocol {
         }
 
         let content = String(decoding: data, as: UTF8.self)
+        let lines = content.components(separatedBy: .newlines)
 
-        guard let range = content.range(of: "OpenClaimsIssuer: ") else {
-            throw MetadataReaderError.metadataNotFound
+        var foundURLString: String?
+
+        for line in lines {
+
+            if let range = line.range(of: "OpenClaimsIssuer: ") {
+                let substring = line[range.upperBound...]
+                let components = substring.split(separator: " ")
+                if let firstComponent = components.first {
+                    foundURLString = String(firstComponent).trimmingCharacters(
+                        in: .whitespacesAndNewlines)
+                    break
+                }
+            }
         }
 
-        let substring = content[range.upperBound...]
-        let components = substring.split(separator: " ")
-
-        guard let urlString = components.first,
-            let url = URL(string: String(urlString).trimmingCharacters(in: .whitespacesAndNewlines))
+        guard let urlString = foundURLString,
+            let url = URL(string: urlString)
         else {
             throw MetadataReaderError.metadataNotFound
         }
