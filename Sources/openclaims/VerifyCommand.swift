@@ -61,6 +61,8 @@ struct VerifyCommand: AsyncParsableCommand {
             if let error = processor.state.lastError {
                 print("Error details: \(error)")
             }
+
+            throw ExitCode.failure
         }
 
     }
