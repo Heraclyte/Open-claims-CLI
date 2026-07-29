@@ -3,11 +3,16 @@
 
 import ArgumentParser
 
+/// The main entry point for the OpenClaims command-line interface tool.
+///
+/// `OpenClaimsCommand` serves as the root executable that configures and routes
+/// user commands for securely generating and embedding verifiable cryptographic 
+/// data payloads within PDF documents.
 @main
-struct openclaims {
-    static func main() {
-        print("Hello, world!")
 struct OpenClaimsCommand: ParsableCommand {
+
+    /// The configuration for the root command, defining its identity, abstract, version,
+    /// and the available subcommands for execution.
     static let configuration = CommandConfiguration(
         commandName: "openclaims",
         abstract: "A utility for embedding verifiable claims into PDF documents.",
