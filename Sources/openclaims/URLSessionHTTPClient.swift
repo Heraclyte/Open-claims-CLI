@@ -4,7 +4,7 @@ import Foundation
     import FoundationNetworking
 #endif
 
-public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable {
+public final class URLSessionHTTPClient: HTTPClientProtocol {
     private let session: URLSession
 
     public init(session: URLSession = URLSessionHTTPClient.createDefaultSession()) {
