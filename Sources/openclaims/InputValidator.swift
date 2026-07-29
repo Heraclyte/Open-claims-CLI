@@ -23,6 +23,7 @@ public class InputValidator {
 
         if fileManager.isReadableFile(atPath: state.documentPath) == false {
             state.encounterError = .fileNotReadable
+            return
         }
 
         guard let url = URL(string: state.issuerDomain) else {
