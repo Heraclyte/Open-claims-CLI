@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-@main
+
 struct VerifyCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "verify",
