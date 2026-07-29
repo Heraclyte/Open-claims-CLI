@@ -49,8 +49,7 @@ public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable
     }
 
     public func fetchPublicKey(for url: URL) async throws -> Data {
-        let specialChar = String(UnicodeScalar(45)!)
-        let path = "/.well\(specialChar)known/open\(specialChar)claims\(specialChar)keys.json"
+        let path = "/.well-known/open-claims-keys.json"
 
         guard let keysURL = URL(string: path, relativeTo: url)?.absoluteURL else {
             throw HTTPClientError.invalidResponse
