@@ -1,6 +1,6 @@
 import Foundation
 
-public final class ClaimVerificationProcessor: @unchecked Sendable {
+public final class ClaimVerificationProcessor {
     private let metadataReader: MetadataReaderProtocol
     private let httpClient: HTTPClientProtocol
 
