@@ -64,8 +64,7 @@ final class HTTPClientTests: XCTestCase {
                 "claim": {
                     "subject": "user_abc",
                     "assertion": "verified_status"
-                },
-                "signature": ""
+                }
             }
             """
         let mockData = jsonString.data(using: .utf8)!

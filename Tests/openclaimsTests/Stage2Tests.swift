@@ -14,7 +14,7 @@ private final class StubMetadataReader: MetadataReaderProtocol {
     }
 }
 
-private final class StubHTTPClient: HTTPClientProtocol, @unchecked Sendable {
+private final class StubHTTPClient: HTTPClientProtocol {
     let result: Result<ClaimEnvelope, Error>
 
     init(result: Result<ClaimEnvelope, Error>) {
@@ -22,15 +22,13 @@ private final class StubHTTPClient: HTTPClientProtocol, @unchecked Sendable {
     }
 
     func fetchClaimEnvelope(from url: URL) async throws -> ClaimEnvelope {
-        return try result.get()
-    }
-
-    func fetchPublicKey(for url: URL) async throws -> Data {
-        return Data()
+        try result.get()
     }
 }
+
 final class Stage2Tests: XCTestCase {
 
+    // 1. Test sprawdzający dekodowanie i kodowanie formatu JSON (Codable)
     func testClaimEnvelopeCodable() throws {
         let sampleJSON = """
             {
@@ -40,8 +38,7 @@ final class Stage2Tests: XCTestCase {
                 "claim": {
                     "subject": "user_456",
                     "assertion": "is_over_18"
-                },
-                "signature": ""
+                }
             }
             """.data(using: .utf8)!
 
@@ -62,19 +59,15 @@ final class Stage2Tests: XCTestCase {
             id: "test_id",
             issuer: expectedURL,
             issuedAt: Date(),
-            claim: ClaimDetails(subject: "sub", assertion: "assert"),
-            signature: Data()
+            claim: ClaimDetails(subject: "sub", assertion: "assert")
         )
 
         let mockReader = StubMetadataReader(result: .success(expectedURL))
         let mockClient = StubHTTPClient(result: .success(expectedEnvelope))
 
-        let mockVerifier = MockCryptographicVerifier()
-
         let processor = ClaimVerificationProcessor(
             metadataReader: mockReader,
-            httpClient: mockClient,
-            verifier: mockVerifier
+            httpClient: mockClient
         )
 
         XCTAssertEqual(processor.state.status, VerificationState.Status.idle)
@@ -93,8 +86,7 @@ final class Stage2Tests: XCTestCase {
 
         let processor = ClaimVerificationProcessor(
             metadataReader: mockReader,
-            httpClient: mockClient,
-            verifier: MockCryptographicVerifier()
+            httpClient: mockClient
         )
 
         await processor.process(pdfPath: "/dummy/path.pdf")

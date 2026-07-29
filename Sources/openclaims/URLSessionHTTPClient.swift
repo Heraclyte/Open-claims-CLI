@@ -4,7 +4,7 @@ import Foundation
     import FoundationNetworking
 #endif
 
-public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable {
+public final class URLSessionHTTPClient: HTTPClientProtocol {
     private let session: URLSession
 
     public init(session: URLSession = URLSessionHTTPClient.createDefaultSession()) {
@@ -27,7 +27,7 @@ public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            print("Network request failed while fetching envelope with error: \(error)")
+            print("Network request failed with underlying error: \(error)")
             throw HTTPClientError.invalidResponse
         }
 
@@ -43,47 +43,6 @@ public final class URLSessionHTTPClient: HTTPClientProtocol, @unchecked Sendable
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             return try decoder.decode(ClaimEnvelope.self, from: data)
-        } catch {
-            throw HTTPClientError.decodingError
-        }
-    }
-
-    public func fetchPublicKey(for url: URL) async throws -> Data {
-        let path = "/.well-known/open-claims-keys.json"
-
-        guard let keysURL = URL(string: path, relativeTo: url)?.absoluteURL else {
-            throw HTTPClientError.invalidResponse
-        }
-
-        var request = URLRequest(url: keysURL)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        let (data, response): (Data, URLResponse)
-
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            print("Network request failed while fetching public key with error: \(error)")
-            throw HTTPClientError.invalidResponse
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw HTTPClientError.invalidResponse
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw HTTPClientError.requestFailed(statusCode: httpResponse.statusCode)
-        }
-
-        struct KeysResponse: Decodable {
-            let publicKey: Data
-        }
-
-        do {
-            let decoder = JSONDecoder()
-            let keysResponse = try decoder.decode(KeysResponse.self, from: data)
-            return keysResponse.publicKey
         } catch {
             throw HTTPClientError.decodingError
         }

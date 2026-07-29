@@ -8,5 +8,4 @@ public enum HTTPClientError: Error, Equatable {
 
 public protocol HTTPClientProtocol: Sendable {
     func fetchClaimEnvelope(from url: URL) async throws -> ClaimEnvelope
-    func fetchPublicKey(for url: URL) async throws -> Data
 }

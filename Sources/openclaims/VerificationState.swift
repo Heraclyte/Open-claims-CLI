@@ -1,6 +1,6 @@
 import Foundation
 
-public final class VerificationState: @unchecked Sendable {
+public final class VerificationState {
     public enum Status: Equatable {
         case idle
         case processing
