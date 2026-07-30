@@ -1,6 +1,25 @@
 import Foundation
 
+/// A utility structure responsible for constructing and signing verifiable claim payloads.
 struct PayloadBuilder {
+    
+    /// Constructs a complete, signed verifiable claim formatted as a JSON string.
+    ///
+    /// This method handles validation, metadata parsing, canonicalization, and cryptographic signing.
+    /// It enforces strict requirements for specific claim types (e.g., "credential"), generates
+    /// a canonical representation of the claim, and applies an Ed25519 signature if a private key is provided.
+    ///
+    /// - Parameters:
+    ///   - issuer: The domain or identifier of the entity issuing the claim.
+    ///   - claimType: The type or category of the claim (e.g., "credential").
+    ///   - subject: The identifier of the subject receiving the claim (e.g., an email address or unique ID).
+    ///   - recipientType: The classification of the recipient (e.g., "individual").
+    ///   - assertionType: The epistemic weight or nature of the assertion (e.g., "certification"). Required if `claimType` is "credential".
+    ///   - skill: The specific skill, course, or role being asserted. Required if `claimType` is "credential".
+    ///   - rawMetadata: Additional custom metadata formatted as a serialized JSON string.
+    ///   - privateKeyPath: The file path to an Ed25519 private key used to cryptographically sign the claim.
+    /// - Returns: A fully constructed and signed JSON string representing the claim envelope.
+    /// - Throws: An `NSError` if a "credential" claim is missing required fields, or if cryptographic signing or JSON serialization fails.
     static func build(
         issuer: String,
         claimType: String,

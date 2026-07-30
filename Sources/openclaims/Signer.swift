@@ -1,19 +1,26 @@
 import Foundation
 import Crypto
 
+/// A cryptographic utility structure responsible for signing and verifying data using Ed25519 keys.
 struct Signer {
     
-    // Standard PKCS#8 Ed25519 Private Key Prefix (16 bytes)
+    /// The standard PKCS#8 prefix for an Ed25519 private key, consisting of 16 bytes.
     private static let ed25519PrivateKeyPrefix: [UInt8] = [
         0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20
     ]
     
-    // Standard SPKI Ed25519 Public Key Prefix (12 bytes)
+    /// The standard SPKI prefix for an Ed25519 public key, consisting of 12 bytes.
     private static let ed25519PublicKeyPrefix: [UInt8] = [
         0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
     ]
 
     /// Loads an Ed25519 private key (supporting raw 32 bytes or OpenSSL PEM/DER formats) and signs the data.
+    ///
+    /// - Parameters:
+    ///   - data: The data to be cryptographically signed.
+    ///   - privateKeyPath: The file path to the Ed25519 private key.
+    /// - Returns: A base64-encoded string representing the generated signature.
+    /// - Throws: An error if the key file cannot be read, parsed, or if the signing operation fails.
     static func sign(data: Data, privateKeyPath: String) throws -> String {
         let expandedPath = NSString(string: privateKeyPath).expandingTildeInPath
         let keyURL = URL(fileURLWithPath: expandedPath).standardizedFileURL
@@ -24,6 +31,14 @@ struct Signer {
         return signatureData.base64EncodedString()
     }
     
+    /// Verifies a base64-encoded cryptographic signature against the provided data using an Ed25519 public key.
+    ///
+    /// - Parameters:
+    ///   - signatureBase64: The base64-encoded signature string to verify.
+    ///   - data: The original data that was signed.
+    ///   - publicKeyPath: The file path to the Ed25519 public key.
+    /// - Returns: A boolean indicating whether the signature is valid for the provided data.
+    /// - Throws: An error if the public key file cannot be read or parsed.
     static func verify(signatureBase64: String, data: Data, publicKeyPath: String) throws -> Bool {
         guard let signatureData = Data(base64Encoded: signatureBase64) else { return false }
         let expandedPath = NSString(string: publicKeyPath).expandingTildeInPath
@@ -36,6 +51,11 @@ struct Signer {
     
     // MARK: - Key Parsing Helpers
     
+    /// Parses and instantiates an Ed25519 private key from raw data or a PEM-encoded format.
+    ///
+    /// - Parameter data: The raw or PEM-encoded key data.
+    /// - Returns: A valid `Curve25519.Signing.PrivateKey` instance.
+    /// - Throws: An `NSError` if the key format is invalid or does not match the expected 32-byte raw or PKCS#8 structure.
     private static func loadPrivateKey(from data: Data) throws -> Curve25519.Signing.PrivateKey {
         if data.count == 32 {
             return try Curve25519.Signing.PrivateKey(rawRepresentation: data)
@@ -58,6 +78,11 @@ struct Signer {
         return try Curve25519.Signing.PrivateKey(rawRepresentation: seedBytes)
     }
     
+    /// Parses and instantiates an Ed25519 public key from raw data or a PEM-encoded format.
+    ///
+    /// - Parameter data: The raw or PEM-encoded key data.
+    /// - Returns: A valid `Curve25519.Signing.PublicKey` instance.
+    /// - Throws: An `NSError` if the key format is invalid or does not match the expected 32-byte raw or SPKI structure.
     private static func loadPublicKey(from data: Data) throws -> Curve25519.Signing.PublicKey {
         if data.count == 32 {
             return try Curve25519.Signing.PublicKey(rawRepresentation: data)
@@ -80,6 +105,12 @@ struct Signer {
         return try Curve25519.Signing.PublicKey(rawRepresentation: keyBytes)
     }
     
+    /// Extracts raw base64-decoded bytes from a PEM-formatted data block by stripping headers, footers, and whitespace.
+    ///
+    /// - Parameters:
+    ///   - data: The PEM-encoded data.
+    ///   - prefix: The specific string prefix used in the PEM header/footer (e.g., "PRIVATE KEY" or "PUBLIC KEY").
+    /// - Returns: The decoded binary data if extraction succeeds, or the original data if parsing fails.
     private static func extractRawBytesFromPEM(data: Data, prefix: String) -> Data {
         guard let text = String(data: data, encoding: .utf8) else { return data }
         let cleaned = text
