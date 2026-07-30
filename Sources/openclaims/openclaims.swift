@@ -1,7 +1,7 @@
 import ArgumentParser
 
 @main
-struct OpenClaimsCommand: ParsableCommand {
+struct OpenClaimsCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "openclaims",
         abstract: "A utility for embedding verifiable claims into PDF documents.",

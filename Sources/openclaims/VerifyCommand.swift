@@ -52,9 +52,9 @@ struct VerifyCommand: AsyncParsableCommand {
         if processor.state.status == VerificationState.Status.valid {
             print("Success! Claim verified successfully.")
             if let envelope = processor.state.envelope {
-                print("Claim ID: \(envelope.id)")
-                print("Subject: \(envelope.claim.subject)")
-                print("Assertion: \(envelope.claim.assertion)")
+                print("Claim ID: \(envelope.claimId)")
+                print("Subject: \(envelope.recipientData.recipientIdentifier)")
+                print("Assertion: \(envelope.assertionType ?? "N/A")")
             }
         } else {
             print("Verification failed!")

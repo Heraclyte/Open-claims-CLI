@@ -59,7 +59,7 @@ struct Attach: ParsableCommand {
                 // Path B: Generate on the fly
                 // We must validate that the required generation fields are present
                 guard let issuer = issuer, let claimType = claimType, let subject = subject else {
-                    throw ValidationError("You must provide --issuer, --claim-type, and --subject if you are not using --payload-file.")
+                    throw CleanExit.message("You must provide --issuer, --claim-type, and --subject if you are not using --payload-file.")
                 }
                 
                 finalPayload = try PayloadBuilder.build(
