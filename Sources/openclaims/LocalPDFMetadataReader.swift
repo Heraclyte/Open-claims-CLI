@@ -11,19 +11,41 @@ public final class LocalPDFMetadataReader: MetadataReaderProtocol {
         }
 
         let content = String(decoding: data, as: UTF8.self)
-        let lines: [String] = content.components(separatedBy: .newlines)
-
         var foundURLString: String?
 
-        for line in lines {
-            if let range = line.range(of: "OpenClaimsIssuer: ") {
-                let substring = line[range.upperBound...]
-                let components = substring.split(whereSeparator: { $0.isWhitespace || $0.isNewline }
-                )
-                if let firstComponent = components.first {
-                    foundURLString = String(firstComponent).trimmingCharacters(
-                        in: .whitespacesAndNewlines)
-                    break
+        if let payloadRange = content.range(
+            of: "/Subtype /OpenClaims /Payload (", options: .backwards)
+        {
+            let substring = content[payloadRange.upperBound...]
+            if let endRange = substring.range(of: ")") {
+                let payloadJSONString = String(substring[..<endRange.lowerBound])
+                    .replacingOccurrences(of: "\\)", with: ")")
+                    .replacingOccurrences(of: "\\(", with: "(")
+                    .replacingOccurrences(of: "\\\\", with: "\\")
+
+                if let jsonData = payloadJSONString.data(using: .utf8),
+                    let jsonObject = try? JSONSerialization.jsonObject(with: jsonData)
+                        as? [String: Any],
+                    let issuer = jsonObject["issuer"] as? String
+                {
+                    foundURLString = issuer
+                }
+            }
+        }
+
+        if foundURLString == nil {
+            let lines: [String] = content.components(separatedBy: .newlines).reversed()
+            for line in lines {
+                if let range = line.range(of: "OpenClaimsIssuer: ") {
+                    let substring = line[range.upperBound...]
+                    let components = substring.split(whereSeparator: {
+                        $0.isWhitespace || $0.isNewline
+                    })
+                    if let firstComponent = components.first {
+                        foundURLString = String(firstComponent).trimmingCharacters(
+                            in: .whitespacesAndNewlines)
+                        break
+                    }
                 }
             }
         }

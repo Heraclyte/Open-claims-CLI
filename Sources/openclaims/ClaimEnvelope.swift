@@ -1,27 +1,27 @@
 import Foundation
 
-struct RecipientData: Codable {
+public struct RecipientData: Codable {
     let recipientType: String
     let recipientIdentifier: String
-    
+
     enum CodingKeys: String, CodingKey {
         case recipientType = "recipient_type"
         case recipientIdentifier = "recipient_identifier"
     }
 }
 
-struct ClaimEnvelope: Codable {
+public struct ClaimEnvelope: Codable {
     let specVersion: String
     let claimId: String
     let claimType: String
     let issuer: String
     let issuedAt: String
     let recipientData: RecipientData
-    
+
     let assertionType: String?
     let skill: String?
     let metadata: [String: String]?
-    let signature: String? // Optional so it can be omitted during canonical encoding
+    let signature: String?
 
     enum CodingKeys: String, CodingKey {
         case specVersion = "spec_version"
@@ -35,38 +35,45 @@ struct ClaimEnvelope: Codable {
         case metadata
         case signature
     }
-    
-    func toJSONString(excludeSignature: Bool = false) throws -> String {
+
+    public func toJSONString(excludeSignature: Bool = false) throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        
-        if excludeSignature {
-            // Create a mirror struct or encode dict explicitly dropping signature
-            let canonicalDict: [String: Any?] = [
-                "spec_version": specVersion,
-                "claim_id": claimId,
-                "claim_type": claimType,
-                "issuer": issuer,
-                "issued_at": issuedAt,
-                "recipient_data": [
-                    "recipient_type": recipientData.recipientType,
-                    "recipient_identifier": recipientData.recipientIdentifier
-                ],
-                "assertion_type": assertionType,
-                "skill": skill,
-                "metadata": metadata
-            ]
-            let data = try JSONSerialization.data(withJSONObject: canonicalDict, options: [.sortedKeys])
-            guard let jsonString = String(data: data, encoding: .utf8) else {
-                throw NSError(domain: "OpenClaims", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to convert canonical JSON data to string."])
-            }
-            return jsonString
-        } else {
-            let data = try encoder.encode(self)
-            guard let jsonString = String(data: data, encoding: .utf8) else {
-                throw NSError(domain: "OpenClaims", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to convert JSON data to string."])
-            }
-            return jsonString
+
+        let data = try encoder.encode(self)
+        guard var dictionary = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw NSError(
+                domain: "ClaimEnvelope", code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON dictionary"])
         }
+
+        if excludeSignature {
+            dictionary.removeValue(forKey: "signature")
+        }
+
+        func sanitize(_ input: [String: Any]) -> [String: Any] {
+            var result = [String: Any]()
+            for (key, value) in input {
+                if value is NSNull { continue }
+                if let subDict = value as? [String: Any] {
+                    result[key] = sanitize(subDict)
+                } else {
+                    result[key] = value
+                }
+            }
+            return result
+        }
+
+        let cleanedDict = sanitize(dictionary)
+        let sortedData = try JSONSerialization.data(
+            withJSONObject: cleanedDict, options: [.sortedKeys, .withoutEscapingSlashes])
+
+        guard let jsonString = String(data: sortedData, encoding: .utf8) else {
+            throw NSError(
+                domain: "ClaimEnvelope", code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to create JSON string"])
+        }
+
+        return jsonString
     }
 }

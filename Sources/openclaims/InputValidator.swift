@@ -32,8 +32,14 @@ public class InputValidator {
         }
 
         if url.scheme != "https" {
-            state.encounterError = .insecureProtocol
-            return
+
+            let isLocalhost = url.host == "localhost" || url.host == "127.0.0.1"
+            if url.scheme == "http" && isLocalhost {
+
+            } else {
+                state.encounterError = .insecureProtocol
+                return
+            }
         }
 
         if url.host == nil {
