@@ -1,13 +1,21 @@
 import Foundation
 
+/// An enumeration of errors that can occur during PDF parsing and payload injection.
 enum PDFError: LocalizedError {
+    /// Thrown when the `%%EOF` marker cannot be found at the end of the file.
     case eofNotFound
+    /// Thrown when the `startxref` keyword cannot be found.
     case startxrefNotFound
+    /// Thrown when the parser cannot read the integer offset of the previous cross-reference table.
     case offsetNotParsed
+    /// Thrown when the `/Size` attribute cannot be extracted from the PDF trailer.
     case sizeNotParsed
+    /// Thrown when the `/Root` attribute cannot be extracted from the PDF trailer.
     case rootNotParsed
+    /// Thrown when the PDF utilizes a compressed XRef stream (introduced in PDF 1.5), which is currently unsupported.
     case xrefStreamUnsupported
     
+    /// A localized description providing human-readable context for the specific error.
     var errorDescription: String? {
         switch self {
         case .eofNotFound: return "Could not find %%EOF marker. Is this a valid PDF?"
@@ -20,10 +28,29 @@ enum PDFError: LocalizedError {
     }
 }
 
+/// An engine responsible for manipulating PDF document structures to securely inject verifiable claims.
+///
+/// `PDFEngine` performs byte-level reverse scanning to locate standard PDF markers (like `trailer` and `startxref`),
+/// allowing it to append a new cryptographic payload object and update the cross-reference table without corrupting
+/// the original document.
 struct PDFEngine {
+    /// The file path to the source PDF document.
     let inputPath: String
+    /// The file path where the modified PDF document will be saved.
     let outputPath: String
     
+    /// Injects a specified string payload into the hidden metadata layer of the PDF document.
+    ///
+    /// This method executes the following steps:
+    /// 1. Duplicates the original file to the target destination (or prepares for in-place modification).
+    /// 2. Ingests the PDF data into memory for byte-level inspection.
+    /// 3. Performs a reverse scan to locate the `%%EOF`, `startxref`, and `trailer` markers.
+    /// 4. Extracts crucial metadata (`/Size` and `/Root`) from the trailer using regular expressions.
+    /// 5. Dynamically assigns a new Object ID and escapes the payload string for PDF compliance[.
+    /// 6. Assembles an updated XRef table and trailer section, appending the new object to the end of the file.
+    ///
+    /// - Parameter payload: The verified JSON claim or string data to embed within the PDF.
+    /// - Throws: A `PDFError` if required markers or metadata cannot be parsed, or if the PDF uses an unsupported XRef stream format.
     func process(payload: String) throws {
         let expandedPDFPath = NSString(string: inputPath).expandingTildeInPath
         let expandedOutputPath = NSString(string: outputPath).expandingTildeInPath
