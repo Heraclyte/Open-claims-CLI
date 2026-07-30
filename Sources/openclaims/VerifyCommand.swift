@@ -1,7 +1,6 @@
 import ArgumentParser
 import Foundation
 
-
 struct VerifyCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "verify",
@@ -13,6 +12,11 @@ struct VerifyCommand: AsyncParsableCommand {
 
     @Argument(help: "Network address of the issuer domain.")
     var issuerDomain: String
+
+    @Option(
+        name: .customLong("public-key"),
+        help: "Path to the issuer's public key PEM file for signature verification")
+    var publicKeyPath: String?
 
     mutating func run() async throws {
         let validationState = ValidationState()
@@ -47,7 +51,7 @@ struct VerifyCommand: AsyncParsableCommand {
         )
 
         print("Fetching claim envelope from network: \(issuerURL.absoluteString)...")
-        await processor.process(pdfPath: pdfPath)
+        await processor.process(pdfPath: pdfPath, publicKeyPath: publicKeyPath)
 
         if processor.state.status == VerificationState.Status.valid {
             print("Success! Claim verified successfully.")
@@ -59,12 +63,10 @@ struct VerifyCommand: AsyncParsableCommand {
         } else {
             print("Verification failed!")
             if let error = processor.state.lastError {
-                print("Error details: \(error)")
+                print("Error details: \(error.localizedDescription)")
             }
 
             throw ExitCode.failure
         }
-
     }
-
 }
