@@ -1,6 +1,6 @@
 import Foundation
 
-struct RecipientData: Codable {
+public struct RecipientData: Codable {
     let recipientType: String
     let recipientIdentifier: String
     
@@ -10,7 +10,7 @@ struct RecipientData: Codable {
     }
 }
 
-struct ClaimEnvelope: Codable {
+public struct ClaimEnvelope: Codable {
     let specVersion: String
     let claimId: String
     let claimType: String
